@@ -413,9 +413,9 @@ export default function Pacer({ locale = "de" }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, fontSize: 12, fontFamily: DISPLAY }}>
-          <a href="/de" style={{ color: locale === "de" ? C.text : C.muted, textDecoration: "none" }}>DE</a>
+          <a href="/de/pacer" style={{ color: locale === "de" ? C.text : C.muted, textDecoration: "none" }}>DE</a>
           <span style={{ color: C.line }}>|</span>
-          <a href="/en" style={{ color: locale === "en" ? C.text : C.muted, textDecoration: "none" }}>EN</a>
+          <a href="/en/pacer" style={{ color: locale === "en" ? C.text : C.muted, textDecoration: "none" }}>EN</a>
         </div>
       </div>
 

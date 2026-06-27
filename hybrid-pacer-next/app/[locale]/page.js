@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Pacer from "../pacer";
+import InstallPrompt from "../install-prompt";
 import { dict, locales } from "../i18n";
 
 export const dynamicParams = false;
@@ -45,6 +46,7 @@ export default function Page({ params }) {
 
   return (
     <main>
+      <InstallPrompt locale={locale} />
       <Pacer locale={locale} />
 
       <section style={{ maxWidth: 680, margin: "0 auto", padding: "8px 16px 40px", color: "#8593A3", fontSize: 14, lineHeight: 1.7 }}>

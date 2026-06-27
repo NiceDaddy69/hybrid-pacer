@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, ReferenceLine } from "recharts";
-import { Timer, Activity, Dumbbell, Copy, Check, Link2, Share2, ChevronDown, ArrowRight } from "lucide-react";
+import { Timer, Activity, Dumbbell, Check, Link2, Share2, ChevronDown, ArrowRight } from "lucide-react";
 import { track } from "@vercel/analytics";
 import { dict } from "./i18n";
 
@@ -132,7 +132,6 @@ export default function Pacer({ locale = "de" }) {
   const [splits, setSplits] = useState(initRef.segs.map((s) => fmt(s.sec)));
   const [roxStr, setRoxStr] = useState(fmt(initRef.rox));
   const [goalStr, setGoalStr] = useState(fmt(initDef));
-  const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [emailStr, setEmailStr] = useState("");
   const [sendState, setSendState] = useState("idle");
@@ -278,13 +277,6 @@ export default function Pacer({ locale = "de" }) {
     window.history.replaceState(null, "", `?p=${enc}`);
     return `${window.location.origin}${window.location.pathname}?p=${enc}`;
   }
-  function copyPlan() {
-    if (!plan) return;
-    haptic();
-    navigator.clipboard?.writeText(buildPlanText());
-    setCopied(true); setTimeout(() => setCopied(false), 1800);
-    ev("plan_copied", { format });
-  }
   function downloadCard(size) {
     const obj = { m: mode, f: format, g: safeGender, t: targetStr, b: bias, s: splits, r: roxStr, go: goalStr };
     const enc = encodeState(obj);
@@ -376,8 +368,6 @@ export default function Pacer({ locale = "de" }) {
       } else { setContribState("error"); setContribMsg(data.error || t.contribFail); }
     } catch { setContribState("error"); setContribMsg(t.contribFail); }
   }
-
-  const ghost = { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "transparent", color: C.muted, fontFamily: DISPLAY, letterSpacing: "0.04em", border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 6px", fontSize: 12, cursor: "pointer", textTransform: "uppercase" };
 
   const ShareBtn = () => (
     <button onClick={shareLinkNative} style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -532,16 +522,14 @@ export default function Pacer({ locale = "de" }) {
                 })}
               </div>
 
-              <button onClick={() => shareCard("landscape")} style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              <button onClick={() => shareCard("story")} style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.06em", border: "none", borderRadius: 8, padding: "13px", fontSize: 15, cursor: "pointer", textTransform: "uppercase", boxShadow: SHADOW }}>
                 <Share2 size={16} /> {t.share}
               </button>
-
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button onClick={() => shareCard("story")} style={ghost}><Share2 size={15} /> {t.storyShort}</button>
-                <button onClick={copyPlan} style={ghost}>{copied ? <Check size={15} /> : <Copy size={15} />} {t.planShort}</button>
-                <button onClick={shareLinkNative} style={ghost}>{linkCopied ? <Check size={15} /> : <Link2 size={15} />} {t.shareShort}</button>
-              </div>
+              <button onClick={shareLinkNative} style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.06em", border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer", textTransform: "uppercase" }}>
+                {linkCopied ? <Check size={16} /> : <Link2 size={16} />} {t.shareShort}
+              </button>
 
               {emailPanel(t.emailTitle, sendPlanEmail)}
             </>

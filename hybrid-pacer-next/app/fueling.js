@@ -35,6 +35,13 @@ const T = {
 function enc(obj) { try { return btoa(encodeURIComponent(JSON.stringify(obj))); } catch (e) { return ""; } }
 function dec(s) { try { return JSON.parse(decodeURIComponent(atob(s))); } catch (e) { return null; } }
 
+const Field = ({ label, children }) => (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>{label}</div>
+    {children}
+  </div>
+);
+
 export default function Fueling({ locale = "de" }) {
   const t = T[locale] || T.de;
 
@@ -88,12 +95,6 @@ export default function Fueling({ locale = "de" }) {
     setCopied(true); setTimeout(() => setCopied(false), 1800);
   }
 
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>{label}</div>
-      {children}
-    </div>
-  );
   const inputStyle = { width: "100%", background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px 12px", color: C.text, fontSize: 15, fontFamily: MONO, outline: "none", colorScheme: "dark" };
 
   return (

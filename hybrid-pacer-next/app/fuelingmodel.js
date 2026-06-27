@@ -31,6 +31,7 @@ const LOC = {
         lines: [
           `Über den Tag ~${n.carbDayLo}–${n.carbDayHi} g Kohlenhydrate (≈ 6–8 g/kg) – kein Marathon-Loading, einfach gut gefüllt reingehen.`,
           "Eher fett- & ballaststoffarm, besonders abends. Frühes, leichtes Abendessen.",
+          "Beispiele: Nudeln mit magerer Tomatensauce, Reis mit Hähnchen, Pfannkuchen, Weißbrot mit Honig – wenig Salat, Vollkorn & Frittiertes.",
           "Gut hydrieren, eine Prise mehr Salz schadet nicht.",
         ],
       },
@@ -86,6 +87,7 @@ const LOC = {
         lines: [
           `Across the day ~${n.carbDayLo}–${n.carbDayHi} g carbs (≈ 6–8 g/kg) – not marathon loading, just go in well-fuelled.`,
           "Lower fat & fibre, especially in the evening. Early, light dinner.",
+          "Examples: pasta with lean tomato sauce, rice with chicken, pancakes, white bread with honey – go easy on salad, wholegrain & fried food.",
           "Hydrate well; a little extra salt won't hurt.",
         ],
       },

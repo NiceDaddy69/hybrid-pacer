@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { buildPlan, LEVELS, DAYS, DEFAULTS, parseTime, fmtTime } from "./planmodel";
+import { buildPlan, LEVELS, DEFAULTS, parseTime, fmtTime } from "./planmodel";
 
 const C = {
   bg: "#0B0F14", panel: "#161C26", panel2: "#1D2531", line: "#2A3543",
@@ -16,6 +16,7 @@ const T = {
     title: "TRAININGS\u200BPLAN", beta: "Beta",
     raceDate: "Renntag", level: "Level", days: "Tage / Woche", format: "Format", category: "Kategorie",
     targetTime: "Zielzeit (HYROX-Finish)", racePace: "Renntempo",
+    recDays: "Empfohlen", daysUnit: "Tage/Woche",
     levels: { beginner: "Einsteiger", intermediate: "Fortgeschritten", advanced: "Ambitioniert" },
     genders: { men: "Herren", women: "Damen", mixed: "Mixed" },
     generate: "Plan erstellen",
@@ -33,6 +34,7 @@ const T = {
     title: "TRAINING PLAN", beta: "Beta",
     raceDate: "Race day", level: "Level", days: "Days / week", format: "Format", category: "Category",
     targetTime: "Target time (HYROX finish)", racePace: "Race pace",
+    recDays: "Recommended", daysUnit: "days/week",
     levels: { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" },
     genders: { men: "Men", women: "Women", mixed: "Mixed" },
     generate: "Build plan",
@@ -69,12 +71,27 @@ function defaultTarget(format, gender) {
   return fmtTime(sec);
 }
 
+const Pill = ({ active, onClick, children }) => (
+  <button onClick={onClick} style={{
+    flex: 1, padding: "9px 6px", fontSize: 13, cursor: "pointer", borderRadius: 8,
+    fontFamily: DISPLAY, letterSpacing: "0.03em", textTransform: "uppercase",
+    background: active ? C.station : "transparent", color: active ? C.ink : C.muted,
+    border: `1px solid ${active ? C.station : C.line}`,
+  }}>{children}</button>
+);
+
+const Field = ({ label, children }) => (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>{label}</div>
+    {children}
+  </div>
+);
+
 export default function TrainingPlan({ locale = "de" }) {
   const t = T[locale] || T.de;
 
   const [raceDate, setRaceDate] = useState("");
   const [level, setLevel] = useState("intermediate");
-  const [daysPerWeek, setDaysPerWeek] = useState(4);
   const [format, setFormat] = useState("open");
   const [gender, setGender] = useState("men");
   const [targetStr, setTargetStr] = useState("");
@@ -96,7 +113,6 @@ export default function TrainingPlan({ locale = "de" }) {
     if (init) {
       if (init.d) setRaceDate(init.d);
       if (LEVELS.includes(init.lv)) setLevel(init.lv);
-      if (DAYS.includes(init.dpw)) setDaysPerWeek(init.dpw);
       if (init.f) setFormat(init.f);
       if (init.g) setGender(init.g);
       if (init.t) { setTargetStr(init.t); setTargetTouched(true); }
@@ -112,21 +128,21 @@ export default function TrainingPlan({ locale = "de" }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    try { localStorage.setItem(STORE, JSON.stringify({ d: raceDate, lv: level, dpw: daysPerWeek, f: format, g: gender, t: targetStr })); } catch (e) {}
-  }, [hydrated, raceDate, level, daysPerWeek, format, gender, targetStr]);
+    try { localStorage.setItem(STORE, JSON.stringify({ d: raceDate, lv: level, f: format, g: gender, t: targetStr })); } catch (e) {}
+  }, [hydrated, raceDate, level, format, gender, targetStr]);
 
   const rawWeeks = weeksUntil(raceDate);
   const capped = rawWeeks && rawWeeks > 24;
   const weeks = rawWeeks ? Math.min(24, rawWeeks) : null;
   const targetSec = parseTime(targetStr);
-  const plan = weeks && weeks >= 1 ? buildPlan({ weeks, daysPerWeek, level, locale, targetSec }) : null;
+  const plan = weeks && weeks >= 1 ? buildPlan({ weeks, level, locale, targetSec, format, gender }) : null;
 
   function toggle(n) {
     setOpen((prev) => { const s = new Set(prev); s.has(n) ? s.delete(n) : s.add(n); return s; });
   }
 
   function shareLink() {
-    const obj = { d: raceDate, lv: level, dpw: daysPerWeek, f: format, g: gender, t: targetStr };
+    const obj = { d: raceDate, lv: level, f: format, g: gender, t: targetStr };
     const e = enc(obj);
     try { window.history.replaceState(null, "", `?p=${e}`); } catch (err) {}
     const url = `${window.location.origin}${window.location.pathname}?p=${e}`;
@@ -138,6 +154,7 @@ export default function TrainingPlan({ locale = "de" }) {
     if (!plan) return "";
     const lines = [`HYBRIDSTATE – ${t.planHeading}`, t.weeksToRace(weeks)];
     if (plan.racePace) lines.push(`${t.racePace}: ≈ ${plan.racePace}`);
+    if (plan.daysPerWeek) lines.push(`${t.recDays}: ${plan.daysPerWeek} ${t.daysUnit}`);
     lines.push("");
     plan.weeks.forEach((w) => {
       const ph = `${t.week} ${w.num} · ${w.phaseLabel}${w.deload ? " · " + t.deload : ""}`;
@@ -155,22 +172,6 @@ export default function TrainingPlan({ locale = "de" }) {
 
   const fmtLabel = FORMATS.find((f) => f.k === format)?.l || "Open";
   const genLabel = t.genders[gender] || "";
-
-  const Pill = ({ active, onClick, children }) => (
-    <button onClick={onClick} style={{
-      flex: 1, padding: "9px 6px", fontSize: 13, cursor: "pointer", borderRadius: 8,
-      fontFamily: DISPLAY, letterSpacing: "0.03em", textTransform: "uppercase",
-      background: active ? C.station : "transparent", color: active ? C.ink : C.muted,
-      border: `1px solid ${active ? C.station : C.line}`,
-    }}>{children}</button>
-  );
-
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 7 }}>{label}</div>
-      {children}
-    </div>
-  );
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "10px 16px 40px", color: C.text }}>
@@ -206,12 +207,6 @@ export default function TrainingPlan({ locale = "de" }) {
           </div>
         </Field>
 
-        <Field label={t.days}>
-          <div style={{ display: "flex", gap: 8 }}>
-            {DAYS.map((d) => <Pill key={d} active={daysPerWeek === d} onClick={() => setDaysPerWeek(d)}>{d}</Pill>)}
-          </div>
-        </Field>
-
         <Field label={t.format}>
           <div style={{ display: "flex", gap: 8 }}>
             {FORMATS.map((f) => <Pill key={f.k} active={format === f.k} onClick={() => setFormat(f.k)}>{f.l}</Pill>)}
@@ -234,12 +229,20 @@ export default function TrainingPlan({ locale = "de" }) {
         <>
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
             <div style={{ fontFamily: DISPLAY, fontSize: 22, marginBottom: 10 }}>{t.weeksToRace(weeks)}</div>
-            {plan.racePace ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.station}`, borderRadius: 999, padding: "5px 12px", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase" }}>{t.racePace}</span>
-                <span style={{ fontFamily: MONO, fontSize: 14, color: C.station }}>≈ {plan.racePace}</span>
-              </div>
-            ) : null}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              {plan.racePace ? (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.station}`, borderRadius: 999, padding: "5px 12px" }}>
+                  <span style={{ fontSize: 11, color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase" }}>{t.racePace}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 14, color: C.station }}>≈ {plan.racePace}</span>
+                </div>
+              ) : null}
+              {plan.daysPerWeek ? (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.bg, border: `1px solid ${C.run}`, borderRadius: 999, padding: "5px 12px" }}>
+                  <span style={{ fontSize: 11, color: C.muted, letterSpacing: "0.06em", textTransform: "uppercase" }}>{t.recDays}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 14, color: C.run }}>{plan.daysPerWeek} {t.daysUnit}</span>
+                </div>
+              ) : null}
+            </div>
             <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>{t.setup(fmtLabel, genLabel)}</div>
             {capped ? <div style={{ fontSize: 12, color: C.run, marginBottom: 12 }}>{t.capped}</div> : null}
             <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>{t.phases}</div>

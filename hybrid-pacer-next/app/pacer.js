@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, ReferenceLine } from "recharts";
-import { Timer, Activity, Dumbbell, Copy, Check, Link2, Download, ChevronDown, ArrowRight } from "lucide-react";
+import { Timer, Activity, Dumbbell, Copy, Check, Link2, Share2, ChevronDown, ArrowRight } from "lucide-react";
 import { track } from "@vercel/analytics";
 import { dict } from "./i18n";
 
@@ -98,6 +98,7 @@ function decodeState(str) {
   try { return JSON.parse(decodeURIComponent(atob(str))); } catch (e) { return null; }
 }
 function ev(name, data) { try { track(name, data); } catch (e) {} }
+function haptic() { try { if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8); } catch (e) {} }
 
 function Pill({ active, onClick, children }) {
   return (
@@ -233,7 +234,7 @@ export default function Pacer({ locale = "de" }) {
   }, [runTimeStr, runDist, bias]);
 
   function applyEstimate() {
-    if (runEstimate) { setTargetStr(fmt(runEstimate.finish)); ev("estimate_applied", { dist: runDist }); }
+    if (runEstimate) { haptic(); setTargetStr(fmt(runEstimate.finish)); ev("estimate_applied", { dist: runDist }); }
   }
 
   const benchAvg = DEFAULTS[format][safeGender] || DEFAULTS[format].men;
@@ -279,14 +280,10 @@ export default function Pacer({ locale = "de" }) {
   }
   function copyPlan() {
     if (!plan) return;
+    haptic();
     navigator.clipboard?.writeText(buildPlanText());
     setCopied(true); setTimeout(() => setCopied(false), 1800);
     ev("plan_copied", { format });
-  }
-  function shareLink() {
-    navigator.clipboard?.writeText(buildShareUrl());
-    setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800);
-    ev("link_shared", { mode });
   }
   function downloadCard(size) {
     const obj = { m: mode, f: format, g: safeGender, t: targetStr, b: bias, s: splits, r: roxStr, go: goalStr };
@@ -298,9 +295,49 @@ export default function Pacer({ locale = "de" }) {
     document.body.appendChild(a); a.click(); a.remove();
     ev("card_downloaded", { format, size: story ? "story" : "landscape" });
   }
+
+  async function shareCard(size) {
+    haptic();
+    const obj = { m: mode, f: format, g: safeGender, t: targetStr, b: bias, s: splits, r: roxStr, go: goalStr };
+    const enc = encodeState(obj);
+    const story = size === "story";
+    const cardUrl = `/api/race-card?p=${enc}${story ? "&size=story" : ""}`;
+    const link = buildShareUrl();
+    try {
+      const res = await fetch(cardUrl);
+      const blob = await res.blob();
+      const file = new File([blob], story ? "hybrid-pacer-story.png" : "hybrid-pacer-race-card.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Hybrid Pacer", text: t.shareText, url: link });
+        ev("card_shared", { size: story ? "story" : "landscape" });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // user cancelled the share sheet
+    }
+    downloadCard(size); // fallback (desktop / unsupported browsers)
+  }
+
+  async function shareLinkNative() {
+    haptic();
+    const link = buildShareUrl();
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Hybrid Pacer", text: t.shareText, url: link });
+        ev("link_shared", { mode, native: true });
+        return;
+      }
+    } catch (e) {
+      return; // cancelled or failed – do nothing
+    }
+    navigator.clipboard?.writeText(link);
+    setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800);
+    ev("link_shared", { mode, native: false });
+  }
   async function sendEmail(getBody, subject, heading) {
     const body = typeof getBody === "function" ? getBody() : getBody;
     if (!body) return;
+    haptic();
     if (!EMAIL_RE.test(emailStr)) { setSendState("error"); setSendMsg(t.invalidEmail); return; }
     setSendState("sending"); setSendMsg("");
     try {
@@ -321,6 +358,7 @@ export default function Pacer({ locale = "de" }) {
 
   async function contributeResult() {
     if (!analysis) return;
+    haptic();
     const segs = splits.map((x) => parseTime(x));
     const rox = parseTime(roxStr);
     if (segs.some((x) => x == null) || rox == null) return;
@@ -342,10 +380,10 @@ export default function Pacer({ locale = "de" }) {
   const ghost = { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "transparent", color: C.muted, fontFamily: DISPLAY, letterSpacing: "0.04em", border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 6px", fontSize: 12, cursor: "pointer", textTransform: "uppercase" };
 
   const ShareBtn = () => (
-    <button onClick={shareLink} style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+    <button onClick={shareLinkNative} style={{ marginTop: 10, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
       background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.06em",
       border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer", textTransform: "uppercase" }}>
-      {linkCopied ? <Check size={16} /> : <Link2 size={16} />}{linkCopied ? t.linkCopied : t.shareLink}
+      {linkCopied ? <Check size={16} /> : <Share2 size={16} />}{linkCopied ? t.linkCopied : t.share}
     </button>
   );
 
@@ -375,19 +413,19 @@ export default function Pacer({ locale = "de" }) {
   return (
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "20px 16px 16px" }}>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", borderBottom: `2px solid ${C.line}`, paddingBottom: 14, marginBottom: 18 }}>
-        <div>
-          <h1 style={{ fontFamily: DISPLAY, fontSize: 30, letterSpacing: "0.02em", lineHeight: 1, margin: 0 }}>
-            HYBRID <span style={{ color: C.station }}>PACER</span>
-          </h1>
-          <div style={{ color: C.muted, fontSize: 12, marginTop: 6, letterSpacing: "0.04em" }}>{t.brandSub}</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", gap: 6, fontSize: 12, fontFamily: DISPLAY }}>
-            <a href="/de" style={{ color: locale === "de" ? C.text : C.muted, textDecoration: "none" }}>DE</a>
-            <span style={{ color: C.line }}>|</span>
-            <a href="/en" style={{ color: locale === "en" ? C.text : C.muted, textDecoration: "none" }}>EN</a>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Timer size={26} color={C.run} aria-hidden />
+          <div>
+            <h1 style={{ fontFamily: DISPLAY, fontSize: 30, letterSpacing: "0.02em", lineHeight: 1, margin: 0 }}>
+              HYBRID <span style={{ color: C.station }}>PACER</span>
+            </h1>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 6, letterSpacing: "0.04em" }}>{t.brandSub}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, fontSize: 12, fontFamily: DISPLAY }}>
+          <a href="/de" style={{ color: locale === "de" ? C.text : C.muted, textDecoration: "none" }}>DE</a>
+          <span style={{ color: C.line }}>|</span>
+          <a href="/en" style={{ color: locale === "en" ? C.text : C.muted, textDecoration: "none" }}>EN</a>
         </div>
       </div>
 
@@ -494,15 +532,15 @@ export default function Pacer({ locale = "de" }) {
                 })}
               </div>
 
-              <button onClick={copyPlan} style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              <button onClick={() => shareCard("landscape")} style={{ marginTop: 14, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.06em", border: "none", borderRadius: 8, padding: "13px", fontSize: 15, cursor: "pointer", textTransform: "uppercase", boxShadow: SHADOW }}>
-                {copied ? <Check size={16} /> : <Copy size={16} />}{copied ? t.copied : t.copyPlan}
+                <Share2 size={16} /> {t.share}
               </button>
 
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button onClick={shareLink} style={ghost}>{linkCopied ? <Check size={15} /> : <Link2 size={15} />} {t.shareShort}</button>
-                <button onClick={() => downloadCard("landscape")} style={ghost}><Download size={15} /> {t.cardShort}</button>
-                <button onClick={() => downloadCard("story")} style={ghost}><Download size={15} /> {t.storyShort}</button>
+                <button onClick={() => shareCard("story")} style={ghost}><Share2 size={15} /> {t.storyShort}</button>
+                <button onClick={copyPlan} style={ghost}>{copied ? <Check size={15} /> : <Copy size={15} />} {t.planShort}</button>
+                <button onClick={shareLinkNative} style={ghost}>{linkCopied ? <Check size={15} /> : <Link2 size={15} />} {t.shareShort}</button>
               </div>
 
               {emailPanel(t.emailTitle, sendPlanEmail)}

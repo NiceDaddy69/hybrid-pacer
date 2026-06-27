@@ -1,6 +1,7 @@
 import "./globals.css";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
+import PwaRegister from "./pwa-register";
 
 const display = localFont({
   src: "./fonts/Anton-Regular.ttf",
@@ -38,14 +39,16 @@ export const metadata = {
     type: "website",
   },
   robots: { index: true, follow: true },
+  icons: { icon: "/icons/icon-192.png", apple: "/apple-icon.png" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Hybrid Pacer" },
 };
 
-export const viewport = { width: "device-width", initialScale: 1 };
+export const viewport = { width: "device-width", initialScale: 1, themeColor: "#0B0F14" };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="de" className={`${display.variable} ${mono.variable}`}>
-      <body>{children}<Analytics /></body>
+      <body>{children}<Analytics /><PwaRegister /></body>
     </html>
   );
 }

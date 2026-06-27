@@ -61,6 +61,7 @@ export default function Page({ params }) {
           <a href="/impressum" style={{ color: "#8593A3", marginRight: 18 }}>Impressum</a>
           <a href="/datenschutz" style={{ color: "#8593A3" }}>{locale === "en" ? "Privacy" : "Datenschutz"}</a>
         </div>
+        <div style={{ marginTop: 12, fontSize: 11, color: "#6B7785", lineHeight: 1.6 }}>{t.notAffiliated}</div>
       </footer>
     </main>
   );

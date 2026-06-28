@@ -21,9 +21,9 @@ const mono = localFont({
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
-  title: "HYROX Rechner – Pace Calculator & Split-Analyse | Hybrid Pacer",
+  title: "Hybridstate – kostenlose HYROX Tools",
   description:
-    "Kostenloser HYROX Rechner: Wandle deine Zielzeit in einen Rennplan mit Split-Zeiten pro Lauf und Station um – oder analysiere deine Zeiten und finde deine größten Schwachstellen. Für Open, Pro und Doubles.",
+    "Hybridstate bündelt kostenlose Tools für HYROX- und Hybrid-Athleten: Pace-Rechner, periodisierte Trainingspläne und Race-Week Fueling.",
   keywords: [
     "HYROX Rechner",
     "HYROX Pace Calculator",
@@ -33,9 +33,9 @@ export const metadata = {
     "HYROX Zeiten",
   ],
   openGraph: {
-    title: "HYROX Rechner – Pace Calculator & Split-Analyse",
+    title: "Hybridstate – kostenlose HYROX Tools",
     description:
-      "Zielzeit in einen Rennplan umrechnen oder deine Splits analysieren. Open, Pro und Doubles.",
+      "Pace-Rechner, Trainingspläne und Race-Week Fueling für HYROX- und Hybrid-Athleten. Kostenlos im Browser.",
     type: "website",
   },
   robots: { index: true, follow: true },

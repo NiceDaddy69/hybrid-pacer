@@ -8,16 +8,18 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://hybridstate.de";
+
 const META = {
   de: {
-    title: "Hybridstate – Tools für HYROX & Hybrid-Athleten",
+    title: "Kostenlose HYROX Tools: Pace-Rechner, Trainingsplan & Fueling | Hybridstate",
     description:
-      "Hybridstate bündelt kostenlose Tools für HYROX- und Hybrid-Athleten: der Hybrid Pacer für Rennplan & Split-Analyse, bald Trainingspläne und Race-Week Fueling.",
+      "Hybridstate bündelt kostenlose Tools für HYROX- und Hybrid-Athleten: Hybrid Pacer für Rennplan & Split-Analyse, periodisierte HYROX-Trainingspläne und einen Race-Week-Fueling-Plan – alles gratis im Browser.",
   },
   en: {
-    title: "Hybridstate – Tools for HYROX & hybrid athletes",
+    title: "Free HYROX tools: pace calculator, training plan & fueling | Hybridstate",
     description:
-      "Hybridstate brings together free tools for HYROX and hybrid athletes: the Hybrid Pacer for race plans & split analysis, with training plans and race-week fueling coming soon.",
+      "Hybridstate brings together free tools for HYROX and hybrid athletes: Hybrid Pacer for race plans & split analysis, periodized HYROX training plans and a race-week fueling plan – all free in your browser.",
   },
 };
 
@@ -39,5 +41,17 @@ export function generateMetadata({ params }) {
 export default function Page({ params }) {
   const locale = params.locale;
   if (!locales.includes(locale)) notFound();
-  return <Home locale={locale} />;
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", name: "Hybridstate", url: SITE, description: "Kostenlose Tools für HYROX- und Hybrid-Athleten." },
+      { "@type": "WebSite", name: "Hybridstate", url: SITE, inLanguage: locale },
+    ],
+  };
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <Home locale={locale} />
+    </>
+  );
 }

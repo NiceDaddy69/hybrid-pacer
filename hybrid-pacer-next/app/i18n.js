@@ -3,7 +3,7 @@ export const defaultLocale = "de";
 
 export const dict = {
   de: {
-    brandSub: "HYROX & Hybrid · Rennplan und Split-Analyse",
+    brandSub: "HYROX Pace-Rechner · Rennplan und Split-Analyse",
     tabPlan: "Rennplan",
     tabAnalyse: "Analyse",
     format: "Format",
@@ -108,7 +108,7 @@ export const dict = {
     langName: "DE",
   },
   en: {
-    brandSub: "HYROX & Hybrid · Race plan & split analysis",
+    brandSub: "HYROX pace calculator · Race plan & split analysis",
     tabPlan: "Race plan",
     tabAnalyse: "Analysis",
     format: "Format",

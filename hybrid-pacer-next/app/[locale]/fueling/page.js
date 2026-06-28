@@ -8,16 +8,18 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://hybridstate.de";
+
 const META = {
   de: {
-    title: "HYROX Race-Week Fueling – Carb-Loading & Renntag | Hybridstate",
+    title: "HYROX Ernährung & Race-Week Fueling – Renntag-Plan | Hybridstate",
     description:
-      "Kostenloser Race-Week-Fueling-Plan für HYROX: Carb-Loading, Hydration, Frühstück und Renntag-Verpflegung – skaliert nach Gewicht und Startzeit.",
+      "Kostenloser Ernährungs- und Race-Week-Fueling-Plan für HYROX: Carb-Loading, Hydration, Frühstück und Renntag-Verpflegung mit Gericht-Beispielen – skaliert nach Gewicht und Startzeit. Als PDF per E-Mail.",
   },
   en: {
-    title: "HYROX Race-Week Fueling – carb-loading & race day | Hybridstate",
+    title: "HYROX Nutrition & Race-Week Fueling – race-day plan | Hybridstate",
     description:
-      "Free race-week fueling plan for HYROX: carb-loading, hydration, breakfast and race-day fueling – scaled to your weight and start time.",
+      "Free nutrition & race-week fueling plan for HYROX: carb-loading, hydration, breakfast and race-day fueling with meal examples – scaled to your weight and start time. As PDF by email.",
   },
 };
 
@@ -41,8 +43,16 @@ export default function FuelingPage({ params }) {
   if (!locales.includes(locale)) notFound();
   const t = dict[locale];
 
+  const ld = {
+    "@context": "https://schema.org", "@type": "WebApplication", name: "Hybridstate Race-Week Fueling",
+    applicationCategory: "SportsApplication", operatingSystem: "Web", url: `${SITE}/${locale}/fueling`,
+    inLanguage: locale, description: META[locale].description,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  };
+
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "16px 16px 0" }}>
         <a href={`/${locale}`} style={{ color: "#8593A3", fontSize: 13, textDecoration: "none" }}>‹ {t.backHome}</a>
       </div>

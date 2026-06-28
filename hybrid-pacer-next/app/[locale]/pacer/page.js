@@ -8,11 +8,13 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://hybridstate.de";
+
 const META = {
   de: {
-    title: "HYROX Rechner – Pace Calculator & Split-Analyse | Hybrid Pacer",
+    title: "HYROX Pace Rechner – Splits & Renntempo berechnen | Hybrid Pacer",
     description:
-      "Kostenloser HYROX Rechner: Zielzeit in einen Rennplan mit Splits pro Lauf und Station umrechnen – oder Zeiten analysieren und Schwachstellen finden. Open, Pro, Doubles.",
+      "Kostenloser HYROX Pace Rechner: Zielzeit in einen Rennplan mit Splits pro Lauf und Station umrechnen – oder Zeiten analysieren und Schwachstellen finden. Open, Pro, Doubles.",
   },
   en: {
     title: "HYROX Pace Calculator – Race Plan & Split Analysis | Hybrid Pacer",
@@ -43,8 +45,28 @@ export default function PacerPage({ params }) {
   if (!locales.includes(locale)) notFound();
   const t = dict[locale];
 
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication", name: "Hybrid Pacer", applicationCategory: "SportsApplication",
+        operatingSystem: "Web", url: `${SITE}/${locale}/pacer`, inLanguage: locale,
+        description: META[locale].description,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          { "@type": "Question", name: t.seoQ1, acceptedAnswer: { "@type": "Answer", text: t.seoA1 } },
+          { "@type": "Question", name: t.seoQ2, acceptedAnswer: { "@type": "Answer", text: t.seoA2 } },
+        ],
+      },
+    ],
+  };
+
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "16px 16px 0" }}>
         <a href={`/${locale}`} style={{ color: "#8593A3", fontSize: 13, textDecoration: "none" }}>‹ {t.backHome}</a>
       </div>

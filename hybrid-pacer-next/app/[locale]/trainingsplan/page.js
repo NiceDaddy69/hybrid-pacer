@@ -8,16 +8,18 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://hybridstate.de";
+
 const META = {
   de: {
-    title: "HYROX Trainingsplan – kostenlos & periodisiert | Hybridstate",
+    title: "HYROX Trainingsplan kostenlos – periodisiert | Hybridstate",
     description:
-      "Kostenloser HYROX Trainingsplan: Renntag, Level und Tage pro Woche eingeben – und einen periodisierten Plan von der Grundlage bis zum Tapering erhalten. Open, Pro, Doubles.",
+      "Kostenloser HYROX Trainingsplan: Renntag, Level und Zielzeit eingeben – und einen periodisierten Plan von der Grundlage bis zum Tapering erhalten. Ausführliche Version als Excel per E-Mail. Open, Pro, Doubles.",
   },
   en: {
     title: "HYROX Training Plan – free & periodized | Hybridstate",
     description:
-      "Free HYROX training plan: enter your race day, level and days per week – and get a periodized plan from base to taper. Open, Pro, Doubles.",
+      "Free HYROX training plan: enter your race day, level and target time – and get a periodized plan from base to taper. Detailed version as Excel by email. Open, Pro, Doubles.",
   },
 };
 
@@ -41,8 +43,16 @@ export default function TrainingPlanPage({ params }) {
   if (!locales.includes(locale)) notFound();
   const t = dict[locale];
 
+  const ld = {
+    "@context": "https://schema.org", "@type": "WebApplication", name: "Hybridstate Trainingsplan",
+    applicationCategory: "SportsApplication", operatingSystem: "Web", url: `${SITE}/${locale}/trainingsplan`,
+    inLanguage: locale, description: META[locale].description,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  };
+
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "16px 16px 0" }}>
         <a href={`/${locale}`} style={{ color: "#8593A3", fontSize: 13, textDecoration: "none" }}>‹ {t.backHome}</a>
       </div>

@@ -17,7 +17,8 @@ const T = {
     raceDate: "Renntag", level: "Level", days: "Tage / Woche", format: "Format", category: "Kategorie",
     targetTime: "Zielzeit (HYROX-Finish)", racePace: "Renntempo",
     recDays: "Empfohlen", daysUnit: "Tage/Woche",
-    emailPh: "Deine E-Mail-Adresse", sendBtn: "Als Excel schicken", sending: "Senden…",
+    emailPh: "Deine E-Mail-Adresse", sendBtn: "Detaillierten Plan schicken", sending: "Senden…",
+    emailPitch: "Hol dir die ausführliche Version per E-Mail: Phasenübersicht, kompletter Wochenplan, Stationsprogression mit deinen Wettkampf-Gewichten und ein Race-Day-Plan mit Split-Zeiten – als Excel.",
     sentOk: "Ist unterwegs – schau in dein Postfach.", sentErr: "Hat nicht geklappt – bitte E-Mail prüfen.",
     unconfigured: "E-Mail-Versand ist noch nicht aktiv.", consentLabel: "Schick mir auch Updates (optional)",
     levels: { beginner: "Einsteiger", intermediate: "Fortgeschritten", advanced: "Ambitioniert" },
@@ -38,7 +39,8 @@ const T = {
     raceDate: "Race day", level: "Level", days: "Days / week", format: "Format", category: "Category",
     targetTime: "Target time (HYROX finish)", racePace: "Race pace",
     recDays: "Recommended", daysUnit: "days/week",
-    emailPh: "Your email address", sendBtn: "Send as Excel", sending: "Sending…",
+    emailPh: "Your email address", sendBtn: "Send detailed plan", sending: "Sending…",
+    emailPitch: "Get the detailed version by email: phase overview, full week plan, station progression with your competition weights, and a race-day split plan – as Excel.",
     sentOk: "On its way – check your inbox.", sentErr: "Didn't work – please check your email.",
     unconfigured: "Email isn't active yet.", consentLabel: "Also send me updates (optional)",
     levels: { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" },
@@ -167,7 +169,7 @@ export default function TrainingPlan({ locale = "de" }) {
     try {
       const res = await fetch("/api/export-plan", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, consent, lang: locale, weeks, level, format, gender, targetStr }),
+        body: JSON.stringify({ email, consent, lang: locale, weeks, level, format, gender, targetStr, raceDate }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) { setSendState("ok"); setSendMsg(t.sentOk); }
@@ -260,6 +262,9 @@ export default function TrainingPlan({ locale = "de" }) {
               ))}
             </div>
             <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+              <div style={{ fontSize: 12.5, color: C.text, background: C.bg, border: `1px solid ${C.station}`, borderRadius: 8, padding: "10px 12px", lineHeight: 1.5 }}>
+                <span style={{ color: C.station, fontWeight: 700 }}>★ </span>{t.emailPitch}
+              </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailPh}
                   style={{ flex: "1 1 200px", minWidth: 0, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px 12px", color: C.text, fontSize: 15, outline: "none" }} />

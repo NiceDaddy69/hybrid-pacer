@@ -17,6 +17,9 @@ const T = {
     raceDate: "Renntag", level: "Level", days: "Tage / Woche", format: "Format", category: "Kategorie",
     targetTime: "Zielzeit (HYROX-Finish)", racePace: "Renntempo",
     recDays: "Empfohlen", daysUnit: "Tage/Woche",
+    emailPh: "Deine E-Mail-Adresse", sendBtn: "Als Excel schicken", sending: "Senden…",
+    sentOk: "Ist unterwegs – schau in dein Postfach.", sentErr: "Hat nicht geklappt – bitte E-Mail prüfen.",
+    unconfigured: "E-Mail-Versand ist noch nicht aktiv.", consentLabel: "Schick mir auch Updates (optional)",
     levels: { beginner: "Einsteiger", intermediate: "Fortgeschritten", advanced: "Ambitioniert" },
     genders: { men: "Herren", women: "Damen", mixed: "Mixed" },
     generate: "Plan erstellen",
@@ -35,6 +38,9 @@ const T = {
     raceDate: "Race day", level: "Level", days: "Days / week", format: "Format", category: "Category",
     targetTime: "Target time (HYROX finish)", racePace: "Race pace",
     recDays: "Recommended", daysUnit: "days/week",
+    emailPh: "Your email address", sendBtn: "Send as Excel", sending: "Sending…",
+    sentOk: "On its way – check your inbox.", sentErr: "Didn't work – please check your email.",
+    unconfigured: "Email isn't active yet.", consentLabel: "Also send me updates (optional)",
     levels: { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" },
     genders: { men: "Men", women: "Women", mixed: "Mixed" },
     generate: "Build plan",
@@ -54,6 +60,7 @@ const FORMATS = [{ k: "open", l: "Open" }, { k: "pro", l: "Pro" }, { k: "doubles
 
 function enc(obj) { try { return btoa(encodeURIComponent(JSON.stringify(obj))); } catch (e) { return ""; } }
 function dec(s) { try { return JSON.parse(decodeURIComponent(atob(s))); } catch (e) { return null; } }
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function weeksUntil(dateStr) {
   if (!dateStr) return null;
@@ -97,8 +104,11 @@ export default function TrainingPlan({ locale = "de" }) {
   const [targetStr, setTargetStr] = useState("");
   const [targetTouched, setTargetTouched] = useState(false);
   const [open, setOpen] = useState(() => new Set([1]));
-  const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [sendState, setSendState] = useState("idle");
+  const [sendMsg, setSendMsg] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   // restore from URL or localStorage
@@ -150,24 +160,20 @@ export default function TrainingPlan({ locale = "de" }) {
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800);
   }
 
-  function planText() {
-    if (!plan) return "";
-    const lines = [`HYBRIDSTATE – ${t.planHeading}`, t.weeksToRace(weeks)];
-    if (plan.racePace) lines.push(`${t.racePace}: ≈ ${plan.racePace}`);
-    if (plan.daysPerWeek) lines.push(`${t.recDays}: ${plan.daysPerWeek} ${t.daysUnit}`);
-    lines.push("");
-    plan.weeks.forEach((w) => {
-      const ph = `${t.week} ${w.num} · ${w.phaseLabel}${w.deload ? " · " + t.deload : ""}`;
-      lines.push(ph);
-      w.days.forEach((d) => lines.push(`  – ${d.title}: ${d.detail}`));
-      lines.push("");
-    });
-    return lines.join("\n");
-  }
-
-  function copyPlan() {
-    navigator.clipboard?.writeText(planText());
-    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  async function sendExport() {
+    if (!EMAIL_RE.test(email)) { setSendState("error"); setSendMsg(t.sentErr); return; }
+    if (!weeks) return;
+    setSendState("sending"); setSendMsg("");
+    try {
+      const res = await fetch("/api/export-plan", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, consent, lang: locale, weeks, level, format, gender, targetStr }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) { setSendState("ok"); setSendMsg(t.sentOk); }
+      else if (data && data.configured === false) { setSendState("error"); setSendMsg(t.unconfigured); }
+      else { setSendState("error"); setSendMsg(t.sentErr); }
+    } catch (e) { setSendState("error"); setSendMsg(t.sentErr); }
   }
 
   const fmtLabel = FORMATS.find((f) => f.k === format)?.l || "Open";
@@ -253,11 +259,22 @@ export default function TrainingPlan({ locale = "de" }) {
                 </span>
               ))}
             </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button onClick={copyPlan} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>
-                {copied ? t.copied : t.copy}
-              </button>
-              <button onClick={shareLink} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>
+            <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailPh}
+                  style={{ flex: "1 1 200px", minWidth: 0, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px 12px", color: C.text, fontSize: 15, outline: "none" }} />
+                <button onClick={sendExport} disabled={sendState === "sending"}
+                  style={{ background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, cursor: sendState === "sending" ? "default" : "pointer", opacity: sendState === "sending" ? 0.7 : 1 }}>
+                  {sendState === "sending" ? t.sending : t.sendBtn}
+                </button>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.muted, cursor: "pointer" }}>
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                {t.consentLabel}
+              </label>
+              {sendMsg ? <div style={{ fontSize: 13, color: sendState === "ok" ? C.run : C.station }}>{sendMsg}</div> : null}
+              <button onClick={shareLink}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>
                 {linkCopied ? t.linkCopied : t.link}
               </button>
             </div>

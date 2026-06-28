@@ -19,6 +19,9 @@ const T = {
     hint: "Gib dein Gewicht und die Startzeit ein – dein Verpflegungsplan erscheint dann automatisch.",
     setup: (w, s) => `${w} kg${s ? ` · Start ${s}` : ""}`,
     copy: "Plan kopieren", copied: "Kopiert", link: "Link", linkCopied: "Link kopiert",
+    emailPh: "Deine E-Mail-Adresse", sendBtn: "Als PDF schicken", sending: "Senden…",
+    sentOk: "Ist unterwegs – schau in dein Postfach.", sentErr: "Hat nicht geklappt – bitte E-Mail prüfen.",
+    unconfigured: "E-Mail-Versand ist noch nicht aktiv.", consentLabel: "Schick mir auch Updates (optional)",
     pacerLink: "Rennplan im Hybrid Pacer erstellen →", heading: "Race-Week Fueling",
   },
   en: {
@@ -34,6 +37,7 @@ const T = {
 
 function enc(obj) { try { return btoa(encodeURIComponent(JSON.stringify(obj))); } catch (e) { return ""; } }
 function dec(s) { try { return JSON.parse(decodeURIComponent(atob(s))); } catch (e) { return null; } }
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Field = ({ label, children }) => (
   <div style={{ marginBottom: 14 }}>
@@ -48,8 +52,11 @@ export default function Fueling({ locale = "de" }) {
   const [weight, setWeight] = useState("75");
   const [startTime, setStartTime] = useState("");
   const [caffeine, setCaffeine] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [sendState, setSendState] = useState("idle");
+  const [sendMsg, setSendMsg] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -80,19 +87,20 @@ export default function Fueling({ locale = "de" }) {
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800);
   }
 
-  function planText() {
-    if (!plan) return "";
-    const lines = [`HYBRIDSTATE – ${t.heading}`, t.setup(plan.weightKg, plan.startTime || ""), ""];
-    plan.items.forEach((it) => {
-      lines.push(`${it.when} · ${it.title}`);
-      it.lines.forEach((l) => lines.push(`  – ${l}`));
-      lines.push("");
-    });
-    return lines.join("\n");
-  }
-  function copyPlan() {
-    navigator.clipboard?.writeText(planText());
-    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  async function sendExport() {
+    if (!EMAIL_RE.test(email)) { setSendState("error"); setSendMsg(t.sentErr); return; }
+    if (!plan) return;
+    setSendState("sending"); setSendMsg("");
+    try {
+      const res = await fetch("/api/export-fueling", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, consent, lang: locale, weight: wNum, startTime, caffeine }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) { setSendState("ok"); setSendMsg(t.sentOk); }
+      else if (data && data.configured === false) { setSendState("error"); setSendMsg(t.unconfigured); }
+      else { setSendState("error"); setSendMsg(t.sentErr); }
+    } catch (e) { setSendState("error"); setSendMsg(t.sentErr); }
   }
 
   const inputStyle = { width: "100%", background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px 12px", color: C.text, fontSize: 15, fontFamily: MONO, outline: "none", colorScheme: "dark" };
@@ -140,9 +148,21 @@ export default function Fueling({ locale = "de" }) {
         <>
           <div style={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
             <div style={{ fontFamily: DISPLAY, fontSize: 18 }}>{t.setup(plan.weightKg, plan.startTime || "")}</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button onClick={copyPlan} style={{ flex: 1, background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: "none", borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>{copied ? t.copied : t.copy}</button>
-              <button onClick={shareLink} style={{ flex: 1, background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>{linkCopied ? t.linkCopied : t.link}</button>
+            <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailPh}
+                  style={{ flex: "1 1 200px", minWidth: 0, background: C.bg, border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px 12px", color: C.text, fontSize: 15, outline: "none" }} />
+                <button onClick={sendExport} disabled={sendState === "sending"}
+                  style={{ background: C.station, color: C.ink, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: "none", borderRadius: 8, padding: "11px 18px", fontSize: 13, cursor: sendState === "sending" ? "default" : "pointer", opacity: sendState === "sending" ? 0.7 : 1 }}>
+                  {sendState === "sending" ? t.sending : t.sendBtn}
+                </button>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.muted, cursor: "pointer" }}>
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+                {t.consentLabel}
+              </label>
+              {sendMsg ? <div style={{ fontSize: 13, color: sendState === "ok" ? C.run : C.station }}>{sendMsg}</div> : null}
+              <button onClick={shareLink} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "transparent", color: C.text, fontFamily: DISPLAY, letterSpacing: "0.05em", textTransform: "uppercase", border: `1px solid ${C.line}`, borderRadius: 8, padding: "11px", fontSize: 13, cursor: "pointer" }}>{linkCopied ? t.linkCopied : t.link}</button>
             </div>
           </div>
 

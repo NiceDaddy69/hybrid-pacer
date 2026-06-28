@@ -64,6 +64,18 @@ function parseTime(str) {
   return sec;
 }
 
+// Auto-insert colons as the user types digits (stopwatch style, right to left).
+// groups = 2 -> mm:ss, groups = 3 -> h:mm:ss
+function maskTime(raw, groups = 2) {
+  const d = String(raw).replace(/\D/g, "").slice(0, groups * 2);
+  if (d.length <= 2) return d;
+  const out = [];
+  let s = d;
+  while (s.length > 2) { out.unshift(s.slice(-2)); s = s.slice(0, -2); }
+  out.unshift(s);
+  return out.join(":");
+}
+
 function computeReference(finishSec, format, gender, bias) {
   const rox = Math.max(finishSec * 0.06, 180);
   const work = finishSec - rox;
@@ -445,7 +457,7 @@ export default function Pacer({ locale = "de" }) {
         <>
           <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: 16, marginBottom: 16, boxShadow: SHADOW }}>
             <label htmlFor="target" style={{ color: C.muted, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em" }}>{t.targetLabel}</label>
-            <input id="target" value={targetStr} onChange={(e) => setTargetStr(e.target.value)} inputMode="numeric"
+            <input id="target" value={targetStr} onChange={(e) => setTargetStr(maskTime(e.target.value, 3))} inputMode="numeric"
               style={{ width: "100%", marginTop: 8, background: C.bg, border: `1px solid ${targetSec == null ? C.station : C.line}`,
                 color: C.text, fontFamily: MONO, fontSize: 30, padding: "10px 14px", borderRadius: 8, outline: "none" }} />
             <div style={{ display: "flex", justifyContent: "space-between", color: C.muted, fontSize: 11, marginTop: 14 }}>
@@ -470,7 +482,7 @@ export default function Pacer({ locale = "de" }) {
                   <Pill active={runDist === 10} onClick={() => setRunDist(10)}>10 km</Pill>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={runTimeStr} onChange={(e) => setRunTimeStr(e.target.value)} inputMode="numeric"
+                  <input value={runTimeStr} onChange={(e) => setRunTimeStr(maskTime(e.target.value, 2))} inputMode="numeric"
                     placeholder={runDist === 5 ? t.runPh5 : t.runPh10} aria-label="run time"
                     style={{ flex: 1, minWidth: 0, background: C.bg, color: C.text, fontFamily: MONO, fontSize: 18,
                       border: `1px solid ${runTimeStr && !runEstimate ? C.station : C.line}`, borderRadius: 8, padding: "8px 12px", outline: "none" }} />
@@ -551,19 +563,19 @@ export default function Pacer({ locale = "de" }) {
                 return (
                   <div key={i}>
                     <label style={{ color: isRun ? C.run : C.station, fontSize: 11 }}>{segLabel(seg)}</label>
-                    <input value={splits[i]} inputMode="numeric" onChange={(e) => { const c = [...splits]; c[i] = e.target.value; setSplits(c); }}
+                    <input value={splits[i]} inputMode="numeric" onChange={(e) => { const c = [...splits]; c[i] = maskTime(e.target.value, 2); setSplits(c); }}
                       style={{ width: "100%", background: C.bg, color: C.text, fontFamily: MONO, fontSize: 15, border: `1px solid ${bad ? C.station : C.line}`, borderRadius: 6, padding: "6px 8px", marginTop: 3 }} />
                   </div>
                 );
               })}
               <div>
                 <label style={{ color: C.muted, fontSize: 11 }}>{t.roxTotal}</label>
-                <input value={roxStr} inputMode="numeric" onChange={(e) => setRoxStr(e.target.value)}
+                <input value={roxStr} inputMode="numeric" onChange={(e) => setRoxStr(maskTime(e.target.value, 2))}
                   style={{ width: "100%", background: C.bg, color: C.text, fontFamily: MONO, fontSize: 15, border: `1px solid ${parseTime(roxStr) == null ? C.station : C.line}`, borderRadius: 6, padding: "6px 8px", marginTop: 3 }} />
               </div>
               <div>
                 <label style={{ color: C.muted, fontSize: 11 }}>{t.compareTarget}</label>
-                <input value={goalStr} inputMode="numeric" onChange={(e) => setGoalStr(e.target.value)}
+                <input value={goalStr} inputMode="numeric" onChange={(e) => setGoalStr(maskTime(e.target.value, 3))}
                   style={{ width: "100%", background: C.bg, color: C.text, fontFamily: MONO, fontSize: 15, border: `1px solid ${parseTime(goalStr) == null ? C.station : C.line}`, borderRadius: 6, padding: "6px 8px", marginTop: 3 }} />
               </div>
             </div>
